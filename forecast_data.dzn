@@ -1,0 +1,3 @@
+maxTime = 336;
+
+minNeeded = array2d(BLOCKs, TIME, [ 1 | i in 1..(card(BLOCKs)*maxTime) ]);     
