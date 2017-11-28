@@ -2,6 +2,7 @@ include "global_cardinality_low_up.mzn";
 include "global_cardinality.mzn";
 include "at_most.mzn";
 include "regular.mzn";
+include "regular_nfa.mzn";
 
 array[TIME] of string: timeLabels;
 %array[1..card(BLOCK)] of string: blockName;
@@ -15,7 +16,7 @@ array[1..card(BLOCK)] of BLOCKs: block_to_blocks = [p,p,p,p,l,l,l,l,l,l,o,o,o,o]
                           
 
 int: maxTime;
-int: max_required_at_any_timeblock= 100;
+int: max_required_at_any_timeblock= 150;
 set of int: TIME = 1..maxTime;  
 
 
@@ -28,8 +29,16 @@ set of int: SHIFT_ROWs = 1..max_required_at_any_timeblock * 2;
 array[SHIFT_ROWs, TIME] of var BLOCK: roster;
 
 
-constraint forall(h in TIME) ( global_cardinality_low_up([ block_to_blocks[roster[r, h]] | r in SHIFT_ROWs],[p, l, o], [ minNeeded[p,h], minNeeded[l,h], minNeeded[o,h] ], [ max_required_at_any_timeblock * 2, max_required_at_any_timeblock * 2, max_required_at_any_timeblock * 2 ] ));
-%  [p, l, o], [ minNeeded[p,h], minNeeded[l,h], minNeeded[o,h] ]  ));
+%constraint forall(h in TIME) ( global_cardinality_low_up([ block_to_blocks[roster[r, h]] | r in SHIFT_ROWs], [p, l, o], 
+%[ minNeeded[p,h], minNeeded[l,h], minNeeded[o,h] ],
+%[ max_required_at_any_timeblock * 2, max_required_at_any_timeblock * 2, max_required_at_any_timeblock * 2 ] ));
+
+constraint forall(h in TIME) ( global_cardinality_low_up([ block_to_blocks[roster[r, h]] | r in SHIFT_ROWs], [p, l, o], 
+[ 0,0,0 ],
+[ minNeeded[p,h], minNeeded[l,h], max_required_at_any_timeblock * 2  ] ));
+
+%constraint forall(h in TIME) ( global_cardinality([ block_to_blocks[roster[r, h]] | r in SHIFT_ROWs],
+%  [p, l], [ minNeeded[p,h], minNeeded[l,h]]  ));
 
 
 int: Q = 15; %states quantity
@@ -54,15 +63,8 @@ array[1..Q, 1..S] of 0..Q: transition_array =
 |2,0,0,0,6,0,0,0,0,0,0,0,0,15,
 |2,0,0,0,6,0,0,0,0,0,0,0,0,15|];
 
-
-
-
-constraint forall(r in SHIFT_ROWs) (regular([roster[r,h] | h in TIME], Q, S, transition_array, q0, STEPS));
-
-
-                                         
-
-                                         
+constraint forall(r in SHIFT_ROWs) (regular([roster[r,h] | h in TIME], Q, S, transition_array, q0, STEPS));                                   
+                                        
                                           
 solve satisfy;
 output [show(roster)];
