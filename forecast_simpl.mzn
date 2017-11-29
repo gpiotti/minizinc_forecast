@@ -3,6 +3,7 @@ include "global_cardinality.mzn";
 include "at_most.mzn";
 include "regular.mzn";
 include "regular_nfa.mzn";
+include "count_lt.mzn";
 
 array[TIME] of string: timeLabels;
 
@@ -19,21 +20,22 @@ set of BLOCK_BY_COURSE: spanishShifts = {ps,ls};
 
 set of BLOCK_BY_POSITION: SHIFT_INIT_BLOCK = { p_1, l_1 };
 
-array[1..card(BLOCK_BY_COURSE)] of int: values = [1,1,1,10,10,10,0];
+array[1..card(BLOCK_BY_COURSE)] of int: values = [1,1,1,1,1,1,0];
 
 array[1..card(BLOCK_BY_POSITION)] of BLOCK_BY_TYPE: position_to_type = [p,p,p,p,l,l,l,o,o,o,o,o,o,o];
 array[1..card(BLOCK_BY_COURSE)] of BLOCK_BY_TYPE: course_to_type = [p,p,p,l,l,l,o];
-%array[1..card(BLOCK_BY_POSITION)] of BLOCK_BY_TYPE: position_to_type = [p,p,p,p,l,l,l,l,l,l,o,o,o,o];
+
                           
 
 int: maxTime;
-int: max_required_at_any_timeblock=  100 ;
+int: max_required_live_classes_at_any_timeblock=  50 ;
 set of int: TIME = 1..maxTime;  
 
 
 array[BLOCK_BY_COURSE, TIME] of int: minNeeded;
+array[TIME] of int: offNeeded;
 
-set of int: SHIFT_ROWs = 1..max_required_at_any_timeblock * 2;
+set of int: SHIFT_ROWs = 1..max_required_live_classes_at_any_timeblock ;
 
 
 %variables
@@ -43,17 +45,45 @@ array[SHIFT_ROWs, TIME] of var BLOCK_BY_COURSE: roster;
 constraint forall(r in SHIFT_ROWs, h in TIME) ( course_to_type[roster[r,h]] == position_to_type[roster_position[r,h]] );
 
 
-constraint forall(h in TIME) ( global_cardinality_low_up([ 
+% constraint forall(h in TIME) ( global_cardinality_low_up([ 
+% roster[r, h] | r in SHIFT_ROWs],
+% [ pp, ps, pc, lp, ls, lc], 
+% [ 0 , 0 , 0 , 0 , 0 , 0,],
+% [ minNeeded[pp,h], minNeeded[ps,h], minNeeded[pc,h], minNeeded[lp,h],minNeeded[ls,h],minNeeded[lc,h]  ]
+%  ));
+ 
+ constraint forall(h in TIME) ( global_cardinality([ 
 roster[r, h] | r in SHIFT_ROWs],
 [ pp, ps, pc, lp, ls, lc], 
-[ 0 , 0 , 0 , 0 , 0 , 0 ],
-[ minNeeded[pp,h], minNeeded[ps,h], minNeeded[pc,h], minNeeded[lp,h],minNeeded[ls,h],minNeeded[lc,h] ]
+%[ 0 , 0 , 0 , 0 , 0 , 0,],
+[ minNeeded[pp,h], minNeeded[ps,h], minNeeded[pc,h], minNeeded[lp,h],minNeeded[ls,h],minNeeded[lc,h]  ]
  ));
+ 
+ constraint forall(h in 2..maxTime) ( global_cardinality([ 
+ roster[r, h] | r in SHIFT_ROWs],
+ [oo],
+ [max_required_live_classes_at_any_timeblock - minNeeded[lp,h-1] - minNeeded[ls,h-1] - minNeeded[lc,h-1] 
+ - minNeeded[pp,h] - minNeeded[ps,h] - minNeeded[pc,h] - minNeeded[lp,h] - minNeeded[ls,h] - minNeeded[lc,h] ] 
+ ));
+ 
+ constraint forall(h in 1..1) ( global_cardinality([ 
+ roster[r, h] | r in SHIFT_ROWs],
+ [oo],
+ [max_required_live_classes_at_any_timeblock - minNeeded[pp,h] - minNeeded[ps,h] 
+ - minNeeded[pc,h] - minNeeded[lp,h] - minNeeded[ls,h] - minNeeded[lc,h] ] 
+ ));
+
+%constraint forall(h in TIME) (sum([ if roster[r,h] == oo then 1 else 0 endif | r in SHIFT_ROWs ] ) < 10);
 
 constraint forall (r in SHIFT_ROWs, h in 1..card(TIME)-3) (roster_position[r,h] in SHIFT_INIT_BLOCK ->
 forall (i in h..h+3) ( 
-roster[r,h] in portugueseShifts <-> roster[r,i] in portugueseShifts /\
-roster[r,h] in spanishShifts <-> roster[r,i] in spanishShifts) );
+roster[r,h] in portugueseShifts <-> roster[r,i] in portugueseShifts 
+\/
+ roster[r,h] in spanishShifts <-> roster[r,i] in spanishShifts
+\/
+not ( roster[r,h] in spanishShifts) <-> not(roster[r,i] in spanishShifts)
+));
+
 
 int: Q = 15; %states quantity
 int: S = 14; %input quantity
@@ -79,9 +109,11 @@ array[1..Q, 1..S] of 0..Q: transition_array =
 
 constraint forall(r in SHIFT_ROWs) (regular([roster_position[r,h] | h in TIME], Q, S, transition_array, q0, STEPS));                                   
 
-var int: obj = sum([ ( values[roster[r,h]]   ) | r in SHIFT_ROWs, h in TIME] );                                       
-%solve satisfy;                                         
-solve maximize obj;
-output [show(roster) ++ show(roster_position)];
+var int: obj = sum([ ( values[roster[r,h]]   ) | r in SHIFT_ROWs, h in TIME] ); 
+                                   
+solve satisfy;                                         
+%solve maximize obj;
+%output [show(roster) ++ show(roster_position)];
+output [show(roster)];
 
 %output [ show(SHIFT_ROWs[i]) ++ ";" ++ timeLabels[j] ++ ";" ++ blockName[fix(roster[i,j])] ++ "\n"  | i in SHIFT_ROWs, j in TIME ]  ;
