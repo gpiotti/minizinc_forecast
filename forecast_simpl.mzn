@@ -15,8 +15,8 @@ enum BLOCK_BY_TYPE = { p, l, o };
 
 enum BLOCK_BY_COURSE = { pp, ps, pc, lp, ls, lc, oo };
 
-set of BLOCK_BY_COURSE: portugueseShifts = {pp,lp,oo};
-set of BLOCK_BY_COURSE: spanishShifts = {ps,ls,oo};
+set of BLOCK_BY_COURSE: portugueseShifts = {pp,lp};
+set of BLOCK_BY_COURSE: spanishShifts = {ps,ls};
 
 set of BLOCK_BY_POSITION: SHIFT_INIT_BLOCK = { p_1, l_1 };
 
@@ -28,7 +28,7 @@ array[1..card(BLOCK_BY_COURSE)] of BLOCK_BY_TYPE: course_to_type = [p,p,p,l,l,l,
                           
 
 int: maxTime;
-int: max_required_live_classes_at_any_timeblock=  100;
+int: max_required_live_classes_at_any_timeblock=  50;
 set of int: TIME = 1..maxTime;  
 
 
@@ -44,10 +44,10 @@ array[SHIFT_ROWs, TIME] of var BLOCK_BY_COURSE: roster;
 
 constraint forall(r in SHIFT_ROWs, h in TIME) ( course_to_type[roster[r,h]] == position_to_type[roster_position[r,h]] );
 
-array[ {lp,ls,lc}, 1..maxTime] of var int: continuedBlocks;
+var 0..max_required_live_classes_at_any_timeblock: offBlocks;
 
-constraint forall (s in {lp, ls, lc}) ( continuedBlocks[s,1] = 0 );
-constraint forall (h in 2..maxTime, s in {lp, ls, lc}) ( continuedBlocks[s,h] =  minNeeded[s,h-1] );
+
+constraint offBlocks =  sum ( i in index_set( [roster_position[r,h] | r in SHIFT_ROWs, h in TIME ] )) ( bool2int(i in{ i_2, i_3, i_4, off}))  ;
  
  
  
@@ -57,33 +57,15 @@ roster[r, h] | r in SHIFT_ROWs],
 [ minNeeded[pp,h], minNeeded[ps,h], minNeeded[pc,h], minNeeded[lp,h] , minNeeded[ls,h], minNeeded[lc,h]  ]
  ));
  
-%  constraint forall(h in 2..maxTime) ( global_cardinality([ 
-%  roster[r, h] | r in SHIFT_ROWs],
-%  [oo],
-%  [max_required_live_classes_at_any_timeblock - minNeeded[lp,h-1] - minNeeded[ls,h-1] - minNeeded[lc,h-1] 
-%  - minNeeded[pp,h] - minNeeded[ps,h] - minNeeded[pc,h] - minNeeded[lp,h] - minNeeded[ls,h] - minNeeded[lc,h] +
-%  continuedBlocks[ls,h] + continuedBlocks[lp,h] + continuedBlocks[lc,h]]
-%  ));
- 
- constraint forall(h in 1..1) ( global_cardinality([ 
- roster[r, h] | r in SHIFT_ROWs],
- [oo],
- [max_required_live_classes_at_any_timeblock - minNeeded[pp,h] - minNeeded[ps,h] 
- - minNeeded[pc,h] - minNeeded[lp,h] - minNeeded[ls,h] - minNeeded[lc,h] ] 
- ));
 
 
-% constraint forall (r in SHIFT_ROWs, h in 1..maxTime-3) (roster_position[r,h] in SHIFT_INIT_BLOCK ->
-% forall (i in h..h+3) ( 
+constraint forall (r in SHIFT_ROWs, h in 1..maxTime-3) (
+roster_position[r,h] in SHIFT_INIT_BLOCK /\ roster[r,h] in portugueseShifts ->
+not exists(  i in h..+3 )( roster[r,i] in spanishShifts )); 
+constraint forall (r in SHIFT_ROWs, h in 1..maxTime-3) (
+roster_position[r,h] in SHIFT_INIT_BLOCK /\ roster[r,h] in spanishShifts ->
+not exists(  i in h..+3 )( roster[r,i] in portugueseShifts )); 
 
-% roster[r,h] in portugueseShifts <-> roster[r,i] in portugueseShifts 
-% \/
-
-%  roster[r,h] in spanishShifts <-> roster[r,i] in spanishShifts
-% %\/
-% %not ( roster[r,h] in spanishShifts) <-> not(roster[r,i] in spanishShifts)
-
-% ));
 
 
 int: Q = 15; %states quantity
@@ -110,10 +92,8 @@ array[1..Q, 1..S] of 0..Q: transition_array =
 
 constraint forall(r in SHIFT_ROWs) (regular([roster_position[r,h] | h in TIME], Q, S, transition_array, q0, STEPS));                                   
 
-var int: obj = sum([ ( values[roster[r,h]]   ) | r in SHIFT_ROWs, h in TIME] ); 
-                                   
-solve satisfy;                                         
-%solve maximize obj;
+                                        
+solve minimize offBlocks;
 %output [show(roster) ++ show(roster_position)];
 output [show(roster)]  ++ ["\n"] ++ [show(roster_position)];
 
