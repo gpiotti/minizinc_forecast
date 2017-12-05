@@ -30,7 +30,7 @@ array[BLOCK_BY_POSITION, BLOCK_BY_COURSE] of bool : compatible_inv;
                           
 
 int: maxTime;
-int: max_required_live_classes_at_any_timeblock=  400;
+int: max_required_live_classes_at_any_timeblock=  10;
 set of int: TIME = 1..maxTime;  
 
 
@@ -130,8 +130,8 @@ array[1..Q, 1..S] of 0..Q: transition_array =
 
 constraint forall(r in SHIFT_ROWs) (regular([roster_position[r,h] | h in TIME], Q, S, transition_array, q0, STEPS));                                   
 
-                                        
-solve minimize offBlocks;
+             solve :: int_search (        [ roster_position[r,h] | r in SHIFT_ROWs, h in TIME],         most_constrained,         indomain_min,        complete)     minimize offBlocks;                          
+%solve minimize offBlocks;
 %output [show(roster) ++ show(roster_position)];
 output [show(roster)]  ++ ["\n"] ++ [show(roster_position)];
 
