@@ -4,12 +4,14 @@ include "at_most.mzn";
 include "regular.mzn";
 include "regular_nfa.mzn";
 include "count_lt.mzn";
+include "inverse.mzn";
 
 array[TIME] of string: timeLabels;
 
 
 % blocks
 enum BLOCK_BY_POSITION = {  p_1, p_2, p_3, p_4, l_1, l_2, l_3, bc_2, bc_3, bc_4, i_2, i_3, i_4, off };
+
         
 enum BLOCK_BY_TYPE = { p, l, o };
 
@@ -22,13 +24,13 @@ set of BLOCK_BY_POSITION: SHIFT_INIT_BLOCK = { p_1, l_1 };
 
 array[1..card(BLOCK_BY_COURSE)] of int: values = [1,1,1,1,1,1,0];
 
-array[1..card(BLOCK_BY_POSITION)] of BLOCK_BY_TYPE: position_to_type = [p,p,p,p,l,l,l,o,o,o,o,o,o,o];
-array[1..card(BLOCK_BY_COURSE)] of BLOCK_BY_TYPE: course_to_type = [p,p,p,l,l,l,o];
 
+array[BLOCK_BY_COURSE, BLOCK_BY_POSITION] of bool : compatible; 
+array[BLOCK_BY_POSITION, BLOCK_BY_COURSE] of bool : compatible_inv; 
                           
 
 int: maxTime;
-int: max_required_live_classes_at_any_timeblock=  50;
+int: max_required_live_classes_at_any_timeblock=  400;
 set of int: TIME = 1..maxTime;  
 
 
@@ -39,15 +41,50 @@ set of int: SHIFT_ROWs = 1..max_required_live_classes_at_any_timeblock ;
 
 
 %variables
-array[SHIFT_ROWs, TIME] of var BLOCK_BY_POSITION: roster_position;
-array[SHIFT_ROWs, TIME] of var BLOCK_BY_COURSE: roster;
+array[SHIFT_ROWs, TIME] of var  BLOCK_BY_POSITION: roster_position;
+array[SHIFT_ROWs, TIME] of var  BLOCK_BY_COURSE: roster;
 
-constraint forall(r in SHIFT_ROWs, h in TIME) ( course_to_type[roster[r,h]] == position_to_type[roster_position[r,h]] );
+
+%constraint inverse(position_to_type[roster_position], position_to_type[roster]);
+constraint forall(r in SHIFT_ROWs, h in TIME) ( compatible[ roster[r,h], roster_position[r,h]] == true
+ );
+
+% constraint forall(r in SHIFT_ROWs, h in TIME) (
+% compatible[ roster[r,h], roster_position[r,h]] == compatible_inv[ roster_position[r,h], roster[r,h]] 
+% <->
+% compatible_inv[ roster_position[r,h], roster[r,h]] == compatible[ roster[r,h], roster_position[r,h]]
+
+
+% );
+
 
 var 0..max_required_live_classes_at_any_timeblock: offBlocks;
 
 
-constraint offBlocks =  sum ( i in index_set( [roster_position[r,h] | r in SHIFT_ROWs, h in TIME ] )) ( bool2int(i in{ i_2, i_3, i_4, off}))  ;
+constraint offBlocks =  sum ( i in index_set( [roster_position[r,h] | r in SHIFT_ROWs, h in TIME ] )) ( bool2int(i in{ i_2, i_3, i_4})) 
++
+ sum ( i in index_set( [roster[r,h] | r in SHIFT_ROWs, h in TIME ] )) ( bool2int(i in{ oo})) ;
+
+
+% constraint forall(h in TIME) ( global_cardinality_low_up([ 
+% roster_position[r, h] | r in SHIFT_ROWs],
+% [ p_1, p_2, p_3, p_4, l_1, l_2, l_3], 
+% [ max([minNeeded[pp,h], minNeeded[ps,h] , minNeeded[pc,h]]),
+% max( [minNeeded[pp,h] , minNeeded[ps,h] , minNeeded[pc,h]]),
+% max( [minNeeded[pp,h] , minNeeded[ps,h] , minNeeded[pc,h]]),
+% max( [minNeeded[pp,h] , minNeeded[ps,h] , minNeeded[pc,h]]),
+% max( [minNeeded[lp,h] , minNeeded[ls,h], minNeeded[lc,h]]),
+% max( [minNeeded[lp,h] , minNeeded[ls,h], minNeeded[lc,h]]),
+% max( [minNeeded[lp,h] , minNeeded[ls,h], minNeeded[lc,h]]) ]
+%  ,
+%  [max_required_live_classes_at_any_timeblock,
+%  max_required_live_classes_at_any_timeblock,
+%  max_required_live_classes_at_any_timeblock,
+%  max_required_live_classes_at_any_timeblock,
+%  max_required_live_classes_at_any_timeblock,
+%  max_required_live_classes_at_any_timeblock,
+%  max_required_live_classes_at_any_timeblock] 
+%  ));
  
  
  
@@ -62,6 +99,7 @@ roster[r, h] | r in SHIFT_ROWs],
 constraint forall (r in SHIFT_ROWs, h in 1..maxTime-3) (
 roster_position[r,h] in SHIFT_INIT_BLOCK /\ roster[r,h] in portugueseShifts ->
 not exists(  i in h..+3 )( roster[r,i] in spanishShifts )); 
+
 constraint forall (r in SHIFT_ROWs, h in 1..maxTime-3) (
 roster_position[r,h] in SHIFT_INIT_BLOCK /\ roster[r,h] in spanishShifts ->
 not exists(  i in h..+3 )( roster[r,i] in portugueseShifts )); 
