@@ -11,7 +11,7 @@ enum BLOCKS = {  ps, pp, pc, ls, lp, lc, bc, i, off };
 
 
 int: maxTime;
-int: max_required_live_classes_at_any_timeblock=  10;
+int: max_required_live_classes_at_any_timeblock=  400;
 set of int: TIME = 1..maxTime;  
 
 
