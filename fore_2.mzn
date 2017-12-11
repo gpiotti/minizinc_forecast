@@ -6,14 +6,14 @@ include "count.mzn";
 
 array[TIME] of string: timeLabels;
 
-int: ratio = 5;
+int: ratio = 15;
 % blocks
 enum BLOCKS = {  ps, pp, pc, ls, lp, lc, bc, i, off }; 
 
 
 
 int: maxTime;
-int: max_required_live_classes_at_any_timeblock=  80;
+int: max_required_live_classes_at_any_timeblock=  50;
 set of int: TIME = 1..maxTime;  
 
 
@@ -38,10 +38,6 @@ var 0..max_required_live_classes_at_any_timeblock * card(TIME): iBlocks ;
 
 constraint offBlocks =  sum ( j in  [roster[r,h] | h in TIME , r in SHIFT_ROWs ]) ( bool2int( j == off))  ;
 constraint iBlocks =  sum ( j in  [roster[r,h] | h in TIME , r in SHIFT_ROWs ]) ( bool2int( j == i))  ;
-
-
-
-
 
 
  
@@ -108,8 +104,8 @@ array[1..Q, 1..S] of 0..Q: transition_array =
 constraint forall(r in SHIFT_ROWs) (regular([roster[r,h] | h in TIME], Q, S, transition_array, q0, STEPS));                                   
 %smallest
 %anti_first_fail indomain_min
-%solve :: int_search (  [  roster[r,h] | r in SHIFT_ROWs, h in TIME] ,   smallest,         outdomain_random,        complete)     minimize sum(r in SHIFT_ROWs) (offBlocks[r]); 
+solve :: int_search (  [  roster[r,h] | r in SHIFT_ROWs, h in TIME] ,   smallest,         indomain_min,        complete)     maximize offBlocks-iBlocks; 
 %solve satisfy;                
-solve minimize  iBlocks-offBlocks;
-output [show(roster) ++ show(offBlocks)];
+%solve maximize  offBlocks-iBlocks;
+output [show(roster)] ++ ["\n"] ++[show(iBlocks)] ++ ["\n"] ++ [show(offBlocks)] ++ ["\n"] ++ [show(offBlocks-iBlocks) ] ;
 
