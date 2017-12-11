@@ -1,10 +1,7 @@
 include "global_cardinality_low_up.mzn";
 include "global_cardinality.mzn";
-include "at_most.mzn";
 include "regular.mzn";
-include "regular_nfa.mzn";
-include "count_lt.mzn";
-include "inverse.mzn";
+
 
 array[TIME] of string: timeLabels;
 
@@ -14,11 +11,11 @@ enum BLOCKS = {  ps, pp, pc, ls, lp, lc, bc, i, off };
 
 
 int: maxTime;
-int: max_required_live_classes_at_any_timeblock=  300;
+int: max_required_live_classes_at_any_timeblock=  10;
 set of int: TIME = 1..maxTime;  
 
 
-array[1..7, TIME] of int: minNeeded;
+array[1..card(BLOCKS)-2, TIME] of int: minNeeded;
 
 
 set of int: SHIFT_ROWs = 1..max_required_live_classes_at_any_timeblock ;
@@ -29,7 +26,7 @@ set of int: SHIFT_ROWs = 1..max_required_live_classes_at_any_timeblock ;
 array[SHIFT_ROWs, TIME] of var  BLOCKS: roster;
 
 
-var int: offBlocks;
+var 1..(max_required_live_classes_at_any_timeblock * card(TIME)): offBlocks;
 
 
 constraint offBlocks =  sum ( i in index_set( [roster[r,h] | r in SHIFT_ROWs, h in TIME ] )) ( bool2int(i in{ i, off }))  ;
