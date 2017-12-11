@@ -1,21 +1,23 @@
 include "global_cardinality_low_up.mzn";
 include "global_cardinality.mzn";
 include "regular.mzn";
+include "count.mzn";
 
 
 array[TIME] of string: timeLabels;
 
-int: ratio = 5;
+int: ratio = 10;
 % blocks
-enum BLOCKS = {  ps, pp, pc, ls, lp, lc, bc, i, off };
+enum BLOCKS = {  ps, pp, pc, ls, lp, lc, bc, i, off }; 
+
 
 
 int: maxTime;
-int: max_required_live_classes_at_any_timeblock=  60;
+int: max_required_live_classes_at_any_timeblock=  80;
 set of int: TIME = 1..maxTime;  
 
 
-array[1..card(BLOCKS)-2, TIME] of int: minNeeded;
+array[1..card(BLOCKS)-3, TIME] of int: minNeeded;
 
 
 set of int: SHIFT_ROWs = 1..max_required_live_classes_at_any_timeblock ;
@@ -23,16 +25,18 @@ set of int: SHIFT_ROWs = 1..max_required_live_classes_at_any_timeblock ;
 
 %variables
 
-array[SHIFT_ROWs, TIME] of var  BLOCKS: roster;
+array[SHIFT_ROWs, TIME] of var  BLOCKS: roster ;
 
 
-array[TIME] of var 0..(max_required_live_classes_at_any_timeblock): offBlocks;
-%var 1..(max_required_live_classes_at_any_timeblock * 336): offBlocks;
+
+array[SHIFT_ROWs] of var 1..card(TIME): offBlocks ;
 
 
-%constraint offBlocks =  sum ( i in index_set( [roster[r,h] | r in SHIFT_ROWs, h in TIME ] )) ( bool2int(i in{ i, off })) ) ;
-constraint forall(h in TIME) (offBlocks[h] =  sum ( j in index_set( [roster[r,h] | r in SHIFT_ROWs ] )) ( bool2int(j in { i, off })) ) ;
-%constraint forall(h in TIME) (offBlocks[h] =  card (index_set( [roster[r,h] | r in SHIFT_ROWs where roster[r,h] in {off} ] )))  ;
+
+
+constraint forall( r in SHIFT_ROWs ) ( offBlocks[r] =  sum ( j in  [roster[r,h] | h in TIME ] ) ( bool2int( j in {off,i} )))  ;
+
+
 
 
  
@@ -40,10 +44,8 @@ constraint forall(h in TIME) ( global_cardinality([
 roster[r, h] | r in SHIFT_ROWs],
 [ ps, pp, pc, ls, lp, lc], 
 [ ceil(minNeeded[ps,h]/ratio), ceil(minNeeded[pp,h]/ratio), ceil(minNeeded[pc,h]/ratio), ceil(minNeeded[ls,h]/ratio) , ceil(minNeeded[lp,h]/ratio), ceil(minNeeded[lc,h]/ratio)  ]
- ));
+)) ;
  
-
-
 
 int: Q = 45; %states quantity
 int: S = 9; %input quantity
@@ -99,9 +101,10 @@ array[1..Q, 1..S] of 0..Q: transition_array =
 ;
 
 constraint forall(r in SHIFT_ROWs) (regular([roster[r,h] | h in TIME], Q, S, transition_array, q0, STEPS));                                   
-
-solve :: int_search (        [ roster[r,h] | r in SHIFT_ROWs, h in TIME],         most_constrained,         indomain_min,        complete)     minimize sum(h in TIME) (offBlocks[h]);                          
-                
-%solve minimize sum(h in TIME) (offBlocks[h]);
-output [show(roster)];
+%smallest
+%anti_first_fail indomain_min
+%solve :: int_search (  [  offBlocks[r] | r in SHIFT_ROWs] ,   first_fail,         indomain_max,        complete)     minimize sum(r in SHIFT_ROWs) (offBlocks[r]); 
+%solve satisfy;                
+solve minimize sum(r in SHIFT_ROWs) (offBlocks[r]);
+output [show(roster) ++ show(offBlocks)];
 
