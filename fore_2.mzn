@@ -97,7 +97,7 @@ array[1..Q, 1..S] of 0..Q: transition_array =
 
 constraint forall(r in SHIFT_ROWs) (regular([roster[r,h] | h in TIME], Q, S, transition_array, q0, STEPS));                                   
 
-%solve :: int_search (        [ roster[r,h] | r in SHIFT_ROWs, h in TIME],         most_constrained,         indomain_min,        complete)     minimize offBlocks;                          
-solve satisfy;
+solve :: int_search (        [ roster[r,h] | r in SHIFT_ROWs, h in TIME],         most_constrained,         indomain_min,        complete)     minimize offBlocks;                          
+%solve satisfy;
 output [show(roster)]  ++ ["\n"] ++ [show(roster)];
 
