@@ -6,7 +6,7 @@ include "count.mzn";
 
 array[TIME] of string: timeLabels;
 
-int: ratio = 10;
+int: ratio = 5;
 % blocks
 enum BLOCKS = {  ps, pp, pc, ls, lp, lc, bc, i, off }; 
 
@@ -29,12 +29,12 @@ array[SHIFT_ROWs, TIME] of var  BLOCKS: roster ;
 
 
 
-array[SHIFT_ROWs] of var 1..card(TIME): offBlocks ;
+array[SHIFT_ROWs] of var 1..card(TIME)*2: offBlocks ;
 
 
 
 
-constraint forall( r in SHIFT_ROWs ) ( offBlocks[r] =  sum ( j in  [roster[r,h] | h in TIME ] ) ( bool2int( j in {off,i} )))  ;
+constraint forall( r in SHIFT_ROWs ) ( offBlocks[r] =  sum ( j in  [roster[r,h] | h in TIME ] ) ( bool2int( j in {i,off})))  ;
 
 
 
@@ -103,8 +103,8 @@ array[1..Q, 1..S] of 0..Q: transition_array =
 constraint forall(r in SHIFT_ROWs) (regular([roster[r,h] | h in TIME], Q, S, transition_array, q0, STEPS));                                   
 %smallest
 %anti_first_fail indomain_min
-%solve :: int_search (  [  offBlocks[r] | r in SHIFT_ROWs] ,   first_fail,         indomain_max,        complete)     minimize sum(r in SHIFT_ROWs) (offBlocks[r]); 
+%solve :: int_search (  [  roster[r,h] | r in SHIFT_ROWs, h in TIME] ,   smallest,         outdomain_random,        complete)     minimize sum(r in SHIFT_ROWs) (offBlocks[r]); 
 %solve satisfy;                
-solve minimize sum(r in SHIFT_ROWs) (offBlocks[r]);
+solve minimize  sum(r in SHIFT_ROWs) (offBlocks[r]);
 output [show(roster) ++ show(offBlocks)];
 
