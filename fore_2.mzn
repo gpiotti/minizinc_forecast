@@ -29,12 +29,17 @@ array[SHIFT_ROWs, TIME] of var  BLOCKS: roster ;
 
 
 
-array[SHIFT_ROWs] of var 1..card(TIME)*2: offBlocks ;
+%array[SHIFT_ROWs] of var int: offBlocks ;
+var 0..max_required_live_classes_at_any_timeblock * card(TIME): offBlocks ;
+var 0..max_required_live_classes_at_any_timeblock * card(TIME): iBlocks ;
 
 
 
 
-constraint forall( r in SHIFT_ROWs ) ( offBlocks[r] =  sum ( j in  [roster[r,h] | h in TIME ] ) ( bool2int( j in {i,off})))  ;
+constraint offBlocks =  sum ( j in  [roster[r,h] | h in TIME , r in SHIFT_ROWs ]) ( bool2int( j == off))  ;
+constraint iBlocks =  sum ( j in  [roster[r,h] | h in TIME , r in SHIFT_ROWs ]) ( bool2int( j == i))  ;
+
+
 
 
 
@@ -105,6 +110,6 @@ constraint forall(r in SHIFT_ROWs) (regular([roster[r,h] | h in TIME], Q, S, tra
 %anti_first_fail indomain_min
 %solve :: int_search (  [  roster[r,h] | r in SHIFT_ROWs, h in TIME] ,   smallest,         outdomain_random,        complete)     minimize sum(r in SHIFT_ROWs) (offBlocks[r]); 
 %solve satisfy;                
-solve minimize  sum(r in SHIFT_ROWs) (offBlocks[r]);
+solve minimize  iBlocks-offBlocks;
 output [show(roster) ++ show(offBlocks)];
 
