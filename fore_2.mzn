@@ -6,7 +6,7 @@ include "count.mzn";
 
 array[TIME] of string: timeLabels;
 
-int: ratio = 8;
+array[1..card(BLOCKS)-3] of int: ratios = [1,1,1,8,8,8];
 % blocks
 enum BLOCKS = {  ps, pp, pc, ls, lp, lc, bc, i, off }; 
 
@@ -44,7 +44,7 @@ constraint iBlocks =  sum ( j in  [roster[r,h] | h in TIME , r in SHIFT_ROWs ]) 
 constraint forall(h in TIME) ( global_cardinality([ 
 roster[r, h] | r in SHIFT_ROWs],
 [ ps, pp, pc, ls, lp, lc], 
-[ ceil(minNeeded[ps,h]/ratio), ceil(minNeeded[pp,h]/ratio), ceil(minNeeded[pc,h]/ratio), ceil(minNeeded[ls,h]/ratio) , ceil(minNeeded[lp,h]/ratio), ceil(minNeeded[lc,h]/ratio)  ]
+[ ceil(minNeeded[ps,h]/ratios[ps]), ceil(minNeeded[pp,h]/ratios[pp]), ceil(minNeeded[pc,h]/ratios[pc]), ceil(minNeeded[ls,h]/ratios[ls]) , ceil(minNeeded[lp,h]/ratios[lp]), ceil(minNeeded[lc,h]/ratios[lc])  ]
 )) ;
  
 
@@ -102,10 +102,9 @@ array[1..Q, 1..S] of 0..Q: transition_array =
 ;
 
 constraint forall(r in SHIFT_ROWs) (regular([roster[r,h] | h in TIME], Q, S, transition_array, q0, STEPS));                                   
-%smallest
-%anti_first_fail indomain_min
+
 solve :: int_search (  [  roster[r,h] | r in SHIFT_ROWs, h in TIME] ,   smallest,         indomain_min,        complete)     maximize offBlocks-iBlocks; 
 %solve satisfy;                
 %solve maximize  offBlocks-iBlocks;
-output [show(roster)] ++ ["\n"] ++[show(iBlocks)] ++ ["\n"] ++ [show(offBlocks)] ++ ["\n"] ++ [show(offBlocks-iBlocks) ] ;
+output [show(roster)] ++ ["\n"] ++[show(iBlocks)] ++ ["\n"] ++ [show(offBlocks)] ++ ["\n"] ++ [show(offBlocks-iBlocks) ] ++ ["\n"]  ;
 
