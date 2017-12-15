@@ -42,7 +42,7 @@ int: maxRows =
 var int: iBlocks ; 
 
 
-constraint iBlocks =  sum (  [bool2int(roster[r,h] == i) | h in TIME , r in SHIFT_ROWs ]);
+constraint iBlocks =  sum (  [ bool2int(roster[r,h] == i) | h in TIME , r in SHIFT_ROWs  ]);
  
 constraint forall(h in TIME) ( global_cardinality([ 
 roster[r, h] | r in SHIFT_ROWs],
@@ -106,11 +106,11 @@ array[1..Q, 1..S] of 0..Q: transition_array =
 
 constraint forall(r in SHIFT_ROWs) (regular([roster[r,h] | h in TIME], Q, S, transition_array, q0, STEPS));                                   
 
-%solve :: int_search (  [  roster[r,h] | r in SHIFT_ROWs, h in TIME] ,   smallest,         indomain_min,        complete)     minimize iBlocks; 
-solve minimize iBlocks;
+solve :: int_search (  [  roster[r,h] | r in SHIFT_ROWs, h in TIME] ,   smallest,         indomain_min,        complete)     minimize iBlocks; 
+%solve minimize iBlocks;
 % output [show([roster[r,h] | r in SHIFT_ROWs, h in TIME] )] ++ ["\n"]  ++[show(offBlocks[2])]  ++ ["\n"] ++ [show([bool2int(roster[1,h] == off) | h in TIME] )] ;
 
-output [ show(fix(roster[r,h]))  ++ "\t" ++ if h == maxTime then "\n" else "" endif | r in SHIFT_ROWs, h in TIME ]  
+output [ show(fix(roster[r,h]))  ++ "\t" ++ if h == maxTime then "\n" else "" endif | r in SHIFT_ROWs, h in TIME ] ++ ["\n"] ++ [show(iBlocks)] 
 
 
 ;
