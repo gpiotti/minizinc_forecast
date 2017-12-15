@@ -14,7 +14,7 @@ set of int: real_blocks = {ps, pp, pc, ls, lp, lc};
 
 
 int: maxTime;
-int: max_required_live_classes_at_any_timeblock= 8;
+
 set of int: TIME = 1..maxTime;
  
 
@@ -50,6 +50,7 @@ roster[r, h] | r in SHIFT_ROWs],
 [ ceil(minNeeded[ps,h]/ratios[ps]), ceil(minNeeded[pp,h]/ratios[pp]), ceil(minNeeded[pc,h]/ratios[pc]), ceil(minNeeded[ls,h]/ratios[ls]) , ceil(minNeeded[lp,h]/ratios[lp]), ceil(minNeeded[lc,h]/ratios[lc])  ]
 )) ;
  
+
 
 int: Q = 44; %states quantity
 int: S = 9; %input quantity
@@ -105,70 +106,11 @@ array[1..Q, 1..S] of 0..Q: transition_array =
 
 constraint forall(r in SHIFT_ROWs) (regular([roster[r,h] | h in TIME], Q, S, transition_array, q0, STEPS));                                   
 
-solve :: int_search (  [  roster[r,h] | r in SHIFT_ROWs, h in TIME] ,   smallest,         indomain_min,        complete)     minimize iBlocks; 
-%solve minimize iBlocks;
+%solve :: int_search (  [  roster[r,h] | r in SHIFT_ROWs, h in TIME] ,   smallest,         indomain_min,        complete)     minimize iBlocks; 
+solve minimize iBlocks;
 % output [show([roster[r,h] | r in SHIFT_ROWs, h in TIME] )] ++ ["\n"]  ++[show(offBlocks[2])]  ++ ["\n"] ++ [show([bool2int(roster[1,h] == off) | h in TIME] )] ;
 
 output [ show(fix(roster[r,h]))  ++ "\t" ++ if h == maxTime then "\n" else "" endif | r in SHIFT_ROWs, h in TIME ]  
 
-% ++ [ 
-% if
 
-% 	if 
-% 	(
-% 	fix(roster[r,h-1]) == off \/ h = 1) /\ fix(roster[r,h]) != off  
-% 	\/
-% 	(fix(roster[r,h-4]) != off /\
-% 	fix(roster[r,h-3]) != off /\
-% 	fix(roster[r,h-2]) != off /\
-% 	fix(roster[r,h-1]) != off
-% 	 /\ fix(roster[r,h]) != off /\
-% 	 if 
-% 	(
-% 	fix(roster[r,h-2]) == off \/ h = 1) /\ fix(roster[r,h-1]) != off  
-% 	\/
-% 	(fix(roster[r,h-5]) != off /\
-% 	fix(roster[r,h-4]) != off /\
-% 	fix(roster[r,h-3]) != off /\
-% 	fix(roster[r,h-2]) != off
-% 	 /\ fix(roster[r,h-1]) != off ) 
-% 	then "1" else "0" endif  != "1" ) 
-% 	then "1" else "0" endif 
-% = "1" /\ 
-% (fix(roster[r,h-4]) in {ps,ls} \/
-% fix(roster[r,h-3]) in {ps,ls} \/
-% fix(roster[r,h-2]) in {ps,ls} \/
-% fix(roster[r,h-1]) in {ps,ls})
-% then "tbs" 
-% else if
-% 	if 
-% 	(
-% 	fix(roster[r,h-1]) == off \/ h = 1) /\ fix(roster[r,h]) != off  
-% 	\/
-% 	(fix(roster[r,h-4]) != off /\
-% 	fix(roster[r,h-3]) != off /\
-% 	fix(roster[r,h-2]) != off /\
-% 	fix(roster[r,h-1]) != off
-% 	 /\ fix(roster[r,h]) != off /\
-% 	 if 
-% 	(
-% 	fix(roster[r,h-2]) == off \/ h = 1) /\ fix(roster[r,h-1]) != off  
-% 	\/
-% 	(fix(roster[r,h-5]) != off /\
-% 	fix(roster[r,h-4]) != off /\
-% 	fix(roster[r,h-3]) != off /\
-% 	fix(roster[r,h-2]) != off
-% 	 /\ fix(roster[r,h-1]) != off ) 
-% 	then "1" else "0" endif  != "1" ) 
-% 	then "1" else "0" endif 
-% = "1" /\ 
-% (fix(roster[r,h-4]) in {pp,lp} \/
-% fix(roster[r,h-3]) in {pp,lp} \/
-% fix(roster[r,h-2]) in {pp,lp} \/
-% fix(roster[r,h-1]) in {pp,lp})
-% then "tbp"
-% else "0" endif endif
-
-% ++ "\t" ++ if h == maxTime then "\n" else "" endif | r in SHIFT_ROWs, h in 1..card(TIME) ]  ++ ["\n"]  ++ [show(maxRows)]
-% ++ ["\n"]  ++ [show(iBlocks)]
 ;

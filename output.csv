@@ -1,5 +1,5 @@
-off,ls,bc,ps,ps,ps
-pp,pp,i,pp,pp,pp
+off,ls,bc,ps,ps,off
+pp,pp,i,pp,off,pp
 off,ls,bc,pc,pc,pc
 ls,bc,ls,bc,ls,bc
 ls,bc,ls,bc,ls,bc
