@@ -2,15 +2,16 @@ import csv
 from datetime import datetime, timedelta
 date_str = '2017-11-06 00:00:00'
 start_date =  datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
-myfile = open('shifts.csv', 'w')
-myfile_starts = open('starts.csv', 'w')
+
+myfile = open('starts.csv', 'w')
 
 def get_shift_type (blocks):
     tbp = {'pp','lp',}
     tbs = {'ps','ls'}
     cla = {'pc','lc'}
     sets = set(blocks)
-    if tbp & tbs & sets == set() and cla & sets != set():
+    if tbp & sets == set() and tbs & sets == set() and cla & sets != set():
+    #if tbp & tbs & sets == set() and cla & sets != set():
         answer = 'cla'
     elif tbp & sets == set():
         answer = 'tbs'
@@ -109,3 +110,4 @@ while i < len(final):
     i += 1
 
 myfile.close()
+
