@@ -4,7 +4,7 @@ include "regular.mzn";
 
 array[TIME] of string: timeLabels;
 
-array[1..card(BLOCKS)-3] of int: ratios = [1,1,1,8,8,8];
+array[1..card(BLOCKS)-3] of int: ratios = [1,1,1,5,5,5];
 % blocks
 enum BLOCKS = {  ps, pp, pc, ls, lp, lc, bc, i, off }; 
 
