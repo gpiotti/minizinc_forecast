@@ -2,26 +2,35 @@ import pprint
 import time
 import csv
 
-pp = pprint.PrettyPrinter(indent=4)
 
-_previous = [[1,0,0],
-             [0,4,2],
-             [0,3,2]]
+pp = pprint.PrettyPrinter(indent=4)
+f =  open('previous_last_hours.csv', 'r')
+reader =  csv.reader(f, delimiter=',')
+_previous = []
+
+next(reader)
+for row in reader:
+        _previous.append(row)
+        #_previous.append(list(map(int, row[1:])))
+
+
 print("_previous")
 pp.pprint( _previous)
 previous = []
 
 i =0
-while i < len(_previous):
+while i < len(_previous[0]):
         row = []
         j = 0
-        while j < len(_previous[0]):
+        while j < len(_previous[0])-1:
                 row.append(_previous[j][i])
                 j += 1
         
         previous.append(row)
         i += 1
 
+print("previous")
+pp.pprint( previous)
 
 first_block = time.strptime("00:00:00", "%H:%M:%S")
 second_block = time.strptime("00:30:00", "%H:%M:%S")
@@ -69,10 +78,10 @@ def get_quantity (course_type):
                 
         
 current =[
- ['2018-01-08 00:00:00.000','Private','Spanish', 'True Beginner',5],
- ['2018-01-08 00:30:00.000','Private','Portuguese', 'True Beginner',1],
+ ['2018-01-08 00:00:00.000','Private','Portuguese', 'True Beginner',0],
+ ['2018-01-08 00:30:00.000','Private','Portuguese', 'True Beginner',0],
  ['2018-01-08 01:00:00.000','Private','Portuguese', 'True Beginner',1],
- ['2018-01-08 00:00:00.000','Private','Spanish', 'True Beginner',2],
+ ['2018-01-08 00:00:00.000','Private','Spanish', 'True Beginner',0],
  ['2018-01-08 00:30:00.000','Private','Spanish', 'True Beginner',1],
  ['2018-01-08 01:00:00.000','Private','Spanish', 'True Beginner',1],
  ['2018-01-08 00:00:00.000','Private','Spanish', 'True Beginner',1],
@@ -80,11 +89,11 @@ current =[
  ['2018-01-08 01:00:00.000','Private','Spanish', 'True Beginner',1]
  ]
 
-i=0
+i=1 #exclude the dates from the loop
 while i < len(previous):
         j=0
         while j < len(previous[i]):
-                shifts_available = previous[i][j]
+                shifts_available = int(previous[i][j])
                 k = 0
                 if shifts_available > 0:
                         while k < len(current):
@@ -107,7 +116,7 @@ print("current")
 pp.pprint( current)
 print("previous")
 pp.pprint( previous)
-#print(is_time_ok(0, datetime_to_time("2018-01-08 00:30:00.000")))
-#print(is_course_ok(0,"Live"))
+print(is_time_ok(0, datetime_to_time("2018-01-08 00:30:00.000")))
+print(is_course_ok(0,"Live"))
 
 
