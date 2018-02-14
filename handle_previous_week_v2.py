@@ -4,7 +4,7 @@ import csv
 from dateutil.relativedelta import relativedelta
 from datetime import datetime
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO) #set to debug to troubleshoot
 logger = logging.getLogger(__name__)
 
 
@@ -21,9 +21,9 @@ TBS = 'LP2 - Classic True Beginner - Spanish'
 INT = 'LP2 - Classic Intermediate'
 
 pp = pprint.PrettyPrinter(indent=4)
-f_prev_shifts =  open('previous_last_hours.csv', 'r')
-f_forecasted_req =  open('forecasted_requests.csv', 'r')
-f_final_result =  open('final.csv', 'w')
+f_prev_shifts =  open('previous_last_hours.csv', 'r') # comes from DB
+f_forecasted_req =  open('forecasted_requests.csv', 'r') #comes from forecast model
+f_final_result =  open('final.csv', 'w') # output
 
 previous_shifts_reader =  csv.reader(f_prev_shifts, delimiter=',')
 current_reader = csv.reader(f_forecasted_req, delimiter=',')
