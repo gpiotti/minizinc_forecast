@@ -1,122 +1,177 @@
 import pprint
 import time
 import csv
+from dateutil.relativedelta import relativedelta
+from datetime import datetime
+import logging
+logging.basicConfig(level=logging.INFO) #set to debug to troubleshoot
+logger = logging.getLogger(__name__)
 
+
+#### This script loops from the forecasted requests output from the model
+#### and gets the previous weeks shifts, substracting the number of request from the forecast
+#### based on the type of shift, level_category and class_date of the previous week shifts
+
+
+TEACHER_TO_STUDENT_RATIO = 5
+SEP='---------------------------------'
+
+TBP = 'LP2 - Classic True Beginner - Portuguese'
+TBS = 'LP2 - Classic True Beginner - Spanish'
+INT = 'LP2 - Classic Intermediate'
 
 pp = pprint.PrettyPrinter(indent=4)
-f =  open('previous_last_hours.csv', 'r')
-reader =  csv.reader(f, delimiter=',')
-_previous = []
+f_prev_shifts =  open('previous_last_hours.csv', 'r') # comes from DB
+f_forecasted_req =  open('forecasted_requests.csv', 'r') #comes from forecast model
+f_final_result =  open('final.csv', 'w') # output
 
-next(reader)
-for row in reader:
-        _previous.append(row)
-        #_previous.append(list(map(int, row[1:])))
+previous_shifts_reader =  csv.reader(f_prev_shifts, delimiter=',')
+current_reader = csv.reader(f_forecasted_req, delimiter=',')
+final_writer = csv.writer(f_final_result, delimiter=',', lineterminator='\n' )
 
-
-print("_previous")
-pp.pprint( _previous)
-previous = []
-
-i =0
-while i < len(_previous[0]):
-        row = []
-        j = 0
-        while j < len(_previous[0])-1:
-                row.append(_previous[j][i])
-                j += 1
+def to_datetime_from_db(datetime_str): #handles date formatting drom DB input
         
-        previous.append(row)
-        i += 1
+        return datetime.strptime(datetime_str.split(".")[0], "%Y-%m-%d %H:%M:%S")
+        #return time.strptime(datetime_str.split()[1].split(".")[0], "%H:%M:%S")
 
-print("previous")
-pp.pprint( previous)
+def to_datetime_from_forecast(datetime_str): #handles date formatting from forecast input
+        
+        return datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")     
 
-first_block = time.strptime("00:00:00", "%H:%M:%S")
-second_block = time.strptime("00:30:00", "%H:%M:%S")
+current_requests = []
+for i, row in enumerate(current_reader):
+        
+        if i == 0:
+                # class_date, level_category, language, course_type, q_predicted
+                tmp=[row[0], row[5], row[6], row[7], row[8]]            
+        else:
+                tmp = [to_datetime_from_forecast(row[0]).strftime ("%Y-%m-%d %H:%M:%S"), row[5], row[6], row[7], row[8].split(".")[0]]
+        current_requests.append(tmp)
 
-def is_time_ok (previous_col, current_time): #checks if the shift from the previous week can be used in a timeblock
-        if previous_col == 2 \
-           or \
-           (previous_col == 1 and current_time <= second_block) or (previous_col == 0 and current_time <= first_block):
+previous_shifts = []
+
+for row in previous_shifts_reader:
+        previous_shifts.append(row)
+
+
+for i, row in enumerate(previous_shifts_reader):
+        if i == 0:
+                tmp=row
+        else:
+                tmp = [to_datetime_from_db(row[0]).strftime ("%Y-%m-%d %H:%M:%S"), row[1], row[2], row[3], row[4]]
+        previous_shifts.append(tmp)
+        
+logger.debug("from forecast:")
+logger.debug( current_requests[1:2])
+              
+logger.debug("previous_before")
+logger.debug( previous_shifts[1:2])
+
+
+#pp.pprint(previous)
+
+#checks if the shift from prev week could be used to substract a request at a timeblock
+def is_course_ok(prev_shift, prev_start, curr_type, curr_start): 
+        logger.debug("checking course type timing... ")
+        if curr_type == "Private" and get_timediff( prev_start, curr_start ) <= 90:
+                logger.debug(f"type: {curr_type} prev: {prev_start} curr: {curr_start}  **OK**")
+                return True
+        elif curr_type == "Live" and get_timediff( prev_start, curr_start )  <= 60:
+                logger.debug(f"type: {curr_type} prev: {prev_start} curr: {curr_start}  **OK**")
                 return True
         else:
+                logger.debug(f"type: {curr_type} prev: {prev_start} curr: {curr_start} **FAIL**")
                 return False
-
-def is_course_ok(previous_column, current_course): #checks if the shift from prev week could be used to substract a request at a timeblock
-        if current_course == "Private":
+                 
+#checks if the lang of the shift from previous week could be used to substract a request at a timeblock
+def is_lang_ok(prev_shift, curr_level, curr_lang): 
+        logger.debug("checking level and language...")
+        if prev_shift == TBP and (curr_level != 'True Beginner' or curr_lang == 'Portuguese'):
+                logger.debug(f"prev: {prev_shift} curr_level: {curr_level}, curr_lang: {curr_lang} **OK**")
                 return True
-        elif previous_column < 2:
+        if prev_shift == TBS and (curr_level != 'True Beginner' or curr_lang == 'Spanish'):
+                logger.debug(f"prev: {prev_shift} curr_level: {curr_level}, curr_lang: {curr_lang} **OK**")
+                return True
+        if prev_shift == INT and curr_level != 'True Beginner' :
+                logger.debug(f"prev: {prev_shift} curr_level: {curr_level}, curr_lang: {curr_lang} **FAIL**")
                 return True
         else:
-                return False
-                
-        return True
+               logger.debug(f"prev: {prev_shift} curr_level: {curr_level}, curr_lang: {curr_lang} **FAIL**")
+               return False
 
-def is_lang_ok(previous_row, current_level, current_lang): #checks if the lang of the shift from previous week could be used to substract a request at a timeblock
-
-        if previous_row == 0 and (current_lang == "Portuguese" or (current_level == "Intermediate" or current_level == "High Beginner")): 
-                return True
-        elif previous_row == 1 and (current_lang == "Spanish" or (current_level == "Intermediate" or current_level == "High Beginner")):
-                return True
-        elif previous_row == 2 and (current_level == "Intermediate" or current_level == "High Beginner"):
-                return True
-        else:
-                return False
-
-
-def datetime_to_time(datetime_str):
-        return time.strptime(datetime_str.split()[1].split(".")[0], "%H:%M:%S")
-
+def can_substract(prev_shift, prev_start, curr_start, curr_type, curr_lang):
+        return is_lang_ok(prev_shift, curr_level, curr_lang) and is_course_ok(prev_shift, prev_start, curr_type, curr_start)
 
 def get_quantity (course_type):
         if course_type == 'Private':
                 return 1
         else:
-                return 8
+                return TEACHER_TO_STUDENT_RATIO
         
+def get_timediff(prev_time, curr_time):
+        d1 = to_datetime_from_db(prev_time)
+        d2 = to_datetime_from_db(curr_time)
+ 
+        t_diff = relativedelta(d2, d1)
+   
+        return t_diff.hours * 60 + t_diff.minutes
+
+def get_daysdiff(prev_time, curr_time):
+        d1 = to_datetime_from_db(prev_time)
+        d2 = to_datetime_from_db(curr_time)
+ 
+        t_diff = relativedelta(d2, d1)
+   
+        return t_diff.days                            
+
+i=1 #exclude the headers from the loop
+while i < len(previous_shifts):
+        prev_start = previous_shifts[i][0]
+        prev_shift = previous_shifts[i][2]
+        prev_q = int(previous_shifts[i][3])
+        
+        j = 1 # current_shifts_counter
+        logger.debug( f"looping forecast row {i}:" )
+        while prev_q > 0 and j < len(current_requests) -1 :
                 
+                while j < len(current_requests) -1 and prev_q > 0:
+                        curr_start = current_requests[j][0]
+                        curr_level = current_requests[j][1]
+                        curr_lang = current_requests[j][2]
+                        curr_type = current_requests[j][3]
+                        needed_requests = int(current_requests[j][4])
+                       
+                        time_ = time.strptime(curr_start.split(" ")[1], "%H:%M:%S")
+                        
+                        if time_.tm_hour >= 2 or get_daysdiff( prev_start, curr_start) > 1 : # exclulde later hours
+                                j += 1
+                                continue
+                        
+                        logger.debug(SEP)
+                        logger.debug(f"got {prev_q} shift/s {prev_shift} at: \n {prev_start}")
+                                               
+                        logger.debug(f"\n and in {curr_start}: got {needed_requests} requests \n type: {curr_type} \n level: {curr_level}")
+                        
+                        while needed_requests > 0 and prev_q > 0 \
+                        and can_substract( prev_shift, prev_start,  curr_start, curr_type, curr_lang):
+                                q_to_substract = get_quantity(curr_type)
+                                logger.debug(f"substracted {q_to_substract} request")
+                                
+                                needed_requests = max(needed_requests - q_to_substract,0)
+                                
+                                logger.debug(f"new needed requests ->  {needed_requests}" )
+                                current_requests[j][4] = needed_requests 
+                                prev_q = prev_q - 1
+                                previous_shifts[i][3] = prev_q
+                        logger.debug(SEP)
+                        j += 1       
+        i += 1
         
-current =[
- ['2018-01-08 00:00:00.000','Private','Portuguese', 'True Beginner',0],
- ['2018-01-08 00:30:00.000','Private','Portuguese', 'True Beginner',0],
- ['2018-01-08 01:00:00.000','Private','Portuguese', 'True Beginner',1],
- ['2018-01-08 00:00:00.000','Private','Spanish', 'True Beginner',0],
- ['2018-01-08 00:30:00.000','Private','Spanish', 'True Beginner',1],
- ['2018-01-08 01:00:00.000','Private','Spanish', 'True Beginner',1],
- ['2018-01-08 00:00:00.000','Private','Spanish', 'True Beginner',1],
- ['2018-01-08 00:30:00.000','Private','Spanish', 'True Beginner',1],
- ['2018-01-08 01:00:00.000','Private','Spanish', 'True Beginner',1]
- ]
 
-i=1 #exclude the dates from the loop
-while i < len(previous):
-        j=0
-        while j < len(previous[i]):
-                shifts_available = int(previous[i][j])
-                k = 0
-                if shifts_available > 0:
-                        while k < len(current):
-                                needed_requests = current[k][4]
-                                q = get_quantity(current[k][1])
-                                while needed_requests - q >= 0 and shifts_available > 0 \
-                                      and is_time_ok(j, datetime_to_time(current[k][0])) \
-                                      and is_course_ok(j, current[k][1]) \
-                                      and is_lang_ok(i, current[k][3], current[k][2]):
-                                        needed_requests = needed_requests -q
-                                        shifts_available = shifts_available -1
-                                                           
-                                        current[k][4] = needed_requests
-                                        previous[i][j] = shifts_available
-                                        
-                                k+=1
-                j +=1
-        i+=1
-print("current")
-pp.pprint( current)
-print("previous")
-pp.pprint( previous)
-print(is_time_ok(0, datetime_to_time("2018-01-08 00:30:00.000")))
-print(is_course_ok(0,"Live"))
+final_writer.writerows(current_requests)
 
+f_prev_shifts.close()
+f_forecasted_req.close()
+f_final_result.close()
 
+#pp.pprint(previous)
